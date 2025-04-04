@@ -16,6 +16,8 @@
             text-align: center;
             position: relative;
         }
+
+        /* Button styles */
         button {
             font-size: 20px;
             padding: 10px 20px;
@@ -24,185 +26,147 @@
             transition: background-color 0.3s ease;
         }
 
-        /* Button style when it's disabled */
-        button:disabled {
-            background-color: lightgray; /* Disabled color */
-            cursor: not-allowed; /* Makes the cursor look like it's not clickable */
+        /* Disabled button style */
+        .disabled {
+            background-color: darkgray; /* Dark gray when not enough points */
+            cursor: not-allowed; /* No entry sign cursor */
         }
 
-        /* Centered Points Indicator */
+        /* Enabled button style */
+        .enabled {
+            background-color: #4CAF50;
+            cursor: pointer;
+        }
+
+        /* Points counter styling */
         #counter {
             font-size: 30px;
-            position: fixed;
-            top: 10%; /* Placing the points at the top of the screen */
-            left: 50%;
-            transform: translateX(-50%); /* Center it horizontally */
+            margin-bottom: 40px; /* Space between points indicator and "Click me!" button */
+            position: absolute;
+            top: 100px; 
+            /* Move it 100px down from the top */
         }
 
-        /* Upgrade buttons */
+        /* Upgrade button container styling */
         #upgrades {
-            position: fixed;
-            top: 60%; /* Move upgrades further down */
-            left: 50%;
-            transform: translateX(-50%);
             display: flex;
             flex-direction: column;
             gap: 10px;
-            width: 300px;
-            max-height: 250px;
-            overflow-y: auto; /* Enable scrolling if there are too many buttons */
+            position: absolute;
+            top: 70%; /* Positioned further down */
         }
 
-        /* Fixed position for the 'Click me!' button */
+        /* Positioning the "Click me!" button */
         #clickButton {
-            position: fixed;
-            top: 50%;
+            position: absolute;
+            top: 55%; /* Center vertically */
             left: 50%;
             transform: translate(-50%, -50%);
         }
     </style>
 </head>
 <body>
-    <!-- Points indicator (now on top) -->
+    <!-- Points indicator -->
     <div id="counter">Points: 0</div>
 
-    <!-- Click me! button -->
+    <!-- Click me button -->
     <button id="clickButton">Click me!</button>
 
-    <!-- Upgrade Buttons (Initially hidden) -->
+    <!-- Upgrade buttons (initially hidden) -->
     <div id="upgrades">
-        <button id="doublePointsButton" style="display:none;" onclick="purchaseUpgrade('doublePoints')">Double Points (Cost: 30)</button>
-        <button id="autoClickerButton" style="display:none;" onclick="purchaseUpgrade('autoClicker')">Auto-Clicker (Cost: 80)</button>
-        <button id="bonusMultiplierButton" style="display:none;" onclick="purchaseUpgrade('bonusMultiplier')">Bonus Multiplier (Cost: 200)</button>
-        <button id="instantClickButton" style="display:none;" onclick="purchaseUpgrade('instantClick')">Instant Click (Cost: 400)</button>
+        <button id="doublePointsButton" class="disabled" onclick="purchaseUpgrade('doublePoints')">Double Points (Cost: 30)</button>
+        <button id="autoClickerButton" class="disabled" onclick="purchaseUpgrade('autoClicker')">Auto-Clicker (Cost: 80)</button>
+        <button id="bonusMultiplierButton" class="disabled" onclick="purchaseUpgrade('bonusMultiplier')">Bonus Multiplier (Cost: 200)</button>
+        <button id="instantClickButton" class="disabled" onclick="purchaseUpgrade('instantClick')">Instant Click (Cost: 400)</button>
+        <button id="triplePointsButton" class="disabled" onclick="purchaseUpgrade('triplePoints')">Triple Points (Cost: 100)</button>
     </div>
 
     <script>
-        let points = 0; // Points the player has
-        let clickValue = 1; // Points gained per click
+        let points = 0; // Player's points
+        let clickValue = 1; // Points per click
         let autoClickerActive = false; // Auto-clicker status
         let instantClickActive = false; // Instant click status
-        let autoClickInterval = null; // Holds the interval for the auto-clicker
-        let typedWord = ''; // Holds the typed letters
-        const wordToType = 'DISCORD'; // Word that triggers the reward
-        const rewardPoints = 1000; // Points to reward for typing 'DISCORD'
+        let autoClickInterval = null; // Holds auto-clicker interval
+        const upgrades = {
+            doublePoints: { cost: 30, purchased: false },
+            autoClicker: { cost: 80, purchased: false },
+            bonusMultiplier: { cost: 200, purchased: false },
+            instantClick: { cost: 400, purchased: false },
+            triplePoints: { cost: 100, purchased: false },
+        };
 
         const clickButton = document.getElementById("clickButton");
         const counterDiv = document.getElementById("counter");
-        const doublePointsButton = document.getElementById("doublePointsButton");
-        const autoClickerButton = document.getElementById("autoClickerButton");
-        const bonusMultiplierButton = document.getElementById("bonusMultiplierButton");
-        const instantClickButton = document.getElementById("instantClickButton");
 
-        // Update the displayed points
+        // Update the points display
         function updateCounter() {
             counterDiv.textContent = `Points: ${points}`;
+            checkUpgrades(); // Check which upgrades can be unlocked based on points
         }
 
-        // Handle click to earn points
+        // Handle the "Click me!" button click
         clickButton.addEventListener("click", function() {
             points += clickValue;
             updateCounter();
         });
 
-        // Purchase upgrades
+        // Purchase an upgrade
         function purchaseUpgrade(upgrade) {
-            if (upgrade === 'doublePoints' && points >= 30) {
-                points -= 30;
-                clickValue *= 2; // Double the points per click
-                updateCounter();
-                removeUpgradeButton('doublePointsButton'); // Remove the button permanently
-            }
-            else if (upgrade === 'autoClicker' && points >= 80 && !autoClickerActive) {
-                points -= 80;
-                autoClickerActive = true;
+            if (upgrades[upgrade].purchased) return; // Do nothing if already purchased
+
+            if (points >= upgrades[upgrade].cost) {
+                points -= upgrades[upgrade].cost; // Deduct points
+                upgrades[upgrade].purchased = true; // Mark as purchased
                 updateCounter();
 
-                // Start the auto-clicker (clicking every 1.5 seconds)
-                autoClickInterval = setInterval(function() {
-                    points += clickValue; // Add points automatically
-                    updateCounter();
-                }, 1500); // Clicks every 1.5 seconds
-
-                removeUpgradeButton('autoClickerButton'); // Remove the button permanently
-            }
-            else if (upgrade === 'bonusMultiplier' && points >= 200) {
-                points -= 200;
-                clickValue *= 2; // Double the points per click again (bonus multiplier)
-                updateCounter();
-                removeUpgradeButton('bonusMultiplierButton'); // Remove the button permanently
-            }
-            else if (upgrade === 'instantClick' && points >= 400) {
-                points -= 400;
-                instantClickActive = true;
-                updateCounter();
-
-                // Instant click on every 0.2 seconds
-                setInterval(function() {
-                    if (instantClickActive) {
+                if (upgrade === 'doublePoints') {
+                    clickValue *= 2; // Double the points per click
+                } else if (upgrade === 'autoClicker' && !autoClickerActive) {
+                    autoClickerActive = true;
+                    autoClickInterval = setInterval(function() {
                         points += clickValue;
                         updateCounter();
-                    }
-                }, 200); // Clicks every 0.2 second
+                    }, 1000);
+                } else if (upgrade === 'bonusMultiplier') {
+                    clickValue *= 3; // Triple the points per click
+                } else if (upgrade === 'instantClick') {
+                    instantClickActive = true;
+                    setInterval(function() {
+                        if (instantClickActive) {
+                            points += clickValue;
+                            updateCounter();
+                        }
+                    }, 200);
+                } else if (upgrade === 'triplePoints') {
+                    clickValue *= 3; // Triple the points per click
+                }
 
-                removeUpgradeButton('instantClickButton'); // Remove the button permanently
+                // Hide the button after purchase
+                document.getElementById(upgrade + 'Button').style.display = 'none';
             }
         }
 
-        // Function to remove the upgrade button from the DOM
-        function removeUpgradeButton(buttonId) {
-            const button = document.getElementById(buttonId);
-            button.remove(); // Completely remove the button from the DOM
-        }
-
-        // Check and enable upgrade buttons as the player earns points
+        // Check if the player can afford any upgrades and show/hide them accordingly
         function checkUpgrades() {
-            if (points >= 30 && doublePointsButton.style.display === "none") {
-                doublePointsButton.style.display = "inline-block"; // Show Double Points button
-            }
-
-            if (points >= 80 && autoClickerButton.style.display === "none") {
-                autoClickerButton.style.display = "inline-block"; // Show Auto-Clicker button
-            }
-
-            if (points >= 200 && bonusMultiplierButton.style.display === "none") {
-                bonusMultiplierButton.style.display = "inline-block"; // Show Bonus Multiplier button
-            }
-
-            if (points >= 400 && instantClickButton.style.display === "none") {
-                instantClickButton.style.display = "inline-block"; // Show Instant Click button
+            for (let upgrade in upgrades) {
+                const upgradeButton = document.getElementById(upgrade + 'Button');
+                if (!upgrades[upgrade].purchased && points >= upgrades[upgrade].cost) {
+                    // Show the upgrade button only when the player has enough points
+                    upgradeButton.style.display = 'inline-block';
+                    upgradeButton.classList.remove('disabled');
+                    upgradeButton.classList.add('enabled');
+                } else if (upgrades[upgrade].purchased || points < upgrades[upgrade].cost) {
+                    // Hide the button if the upgrade has been purchased or the player can't afford it
+                    upgradeButton.style.display = 'none';
+                }
             }
         }
 
-        // Periodically check for upgrades to unlock
-        setInterval(checkUpgrades, 1000); // Check every 1 second
+        // Periodically check for upgrades to unlock (every second)
+        setInterval(checkUpgrades, 1000); 
 
         // Initialize the counter
         updateCounter();
-
-        // Handle the keyboard input for 'DISCORD' trigger
-        window.addEventListener('keydown', function(event) {
-            // Make sure we only check uppercase letters
-            const key = event.key.toUpperCase();
-
-            // Only consider letter keys (ignore others)
-            if (key >= 'A' && key <= 'Z') {
-                typedWord += key; // Add the typed letter to the word
-
-                // Check if the typed word matches "DISCORD"
-                if (typedWord === wordToType) {
-                    points += rewardPoints; // Add 1000 points
-                    updateCounter();
-                    typedWord = ''; // Reset the typed word after rewarding
-                    alert("You've typed DISCORD! You earned 1000 points!"); // Notify the player
-                }
-
-                // If the word is longer than "DISCORD", reset the typedWord
-                if (typedWord.length > wordToType.length) {
-                    typedWord = ''; // Reset the word if it's too long
-                }
-            }
-        });
     </script>
 </body>
 </html>
