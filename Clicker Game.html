@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicker Simulation Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+            text-align: center;
+            position: relative;
+        }
+        button {
+            font-size: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Button style when it's disabled */
+        button:disabled {
+            background-color: lightgray; /* Disabled color */
+            cursor: not-allowed; /* Makes the cursor look like it's not clickable */
+        }
+
+        /* Centered Points Indicator */
+        #counter {
+            font-size: 30px;
+            position: fixed;
+            top: 10%; /* Placing the points at the top of the screen */
+            left: 50%;
+            transform: translateX(-50%); /* Center it horizontally */
+        }
+
+        /* Upgrade buttons */
+        #upgrades {
+            position: fixed;
+            top: 60%; /* Move upgrades further down */
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 300px;
+            max-height: 250px;
+            overflow-y: auto; /* Enable scrolling if there are too many buttons */
+        }
+
+        /* Fixed position for the 'Click me!' button */
+        #clickButton {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Points indicator (now on top) -->
+    <div id="counter">Points: 0</div>
+
+    <!-- Click me! button -->
+    <button id="clickButton">Click me!</button>
+
+    <!-- Upgrade Buttons (Initially hidden) -->
+    <div id="upgrades">
+        <button id="doublePointsButton" style="display:none;" onclick="purchaseUpgrade('doublePoints')">Double Points (Cost: 30)</button>
+        <button id="autoClickerButton" style="display:none;" onclick="purchaseUpgrade('autoClicker')">Auto-Clicker (Cost: 80)</button>
+        <button id="bonusMultiplierButton" style="display:none;" onclick="purchaseUpgrade('bonusMultiplier')">Bonus Multiplier (Cost: 200)</button>
+        <button id="instantClickButton" style="display:none;" onclick="purchaseUpgrade('instantClick')">Instant Click (Cost: 400)</button>
+    </div>
+
+    <script>
+        let points = 0; // Points the player has
+        let clickValue = 1; // Points gained per click
+        let autoClickerActive = false; // Auto-clicker status
+        let instantClickActive = false; // Instant click status
+        let autoClickInterval = null; // Holds the interval for the auto-clicker
+        let typedWord = ''; // Holds the typed letters
+        const wordToType = 'DISCORD'; // Word that triggers the reward
+        const rewardPoints = 1000; // Points to reward for typing 'DISCORD'
+
+        const clickButton = document.getElementById("clickButton");
+        const counterDiv = document.getElementById("counter");
+        const doublePointsButton = document.getElementById("doublePointsButton");
+        const autoClickerButton = document.getElementById("autoClickerButton");
+        const bonusMultiplierButton = document.getElementById("bonusMultiplierButton");
+        const instantClickButton = document.getElementById("instantClickButton");
+
+        // Update the displayed points
+        function updateCounter() {
+            counterDiv.textContent = `Points: ${points}`;
+        }
+
+        // Handle click to earn points
+        clickButton.addEventListener("click", function() {
+            points += clickValue;
+            updateCounter();
+        });
+
+        // Purchase upgrades
+        function purchaseUpgrade(upgrade) {
+            if (upgrade === 'doublePoints' && points >= 30) {
+                points -= 30;
+                clickValue *= 2; // Double the points per click
+                updateCounter();
+                removeUpgradeButton('doublePointsButton'); // Remove the button permanently
+            }
+            else if (upgrade === 'autoClicker' && points >= 80 && !autoClickerActive) {
+                points -= 80;
+                autoClickerActive = true;
+                updateCounter();
+
+                // Start the auto-clicker (clicking every 1.5 seconds)
+                autoClickInterval = setInterval(function() {
+                    points += clickValue; // Add points automatically
+                    updateCounter();
+                }, 1500); // Clicks every 1.5 seconds
+
+                removeUpgradeButton('autoClickerButton'); // Remove the button permanently
+            }
+            else if (upgrade === 'bonusMultiplier' && points >= 200) {
+                points -= 200;
+                clickValue *= 2; // Double the points per click again (bonus multiplier)
+                updateCounter();
+                removeUpgradeButton('bonusMultiplierButton'); // Remove the button permanently
+            }
+            else if (upgrade === 'instantClick' && points >= 400) {
+                points -= 400;
+                instantClickActive = true;
+                updateCounter();
+
+                // Instant click on every 0.2 seconds
+                setInterval(function() {
+                    if (instantClickActive) {
+                        points += clickValue;
+                        updateCounter();
+                    }
+                }, 200); // Clicks every 0.2 second
+
+                removeUpgradeButton('instantClickButton'); // Remove the button permanently
+            }
+        }
+
+        // Function to remove the upgrade button from the DOM
+        function removeUpgradeButton(buttonId) {
+            const button = document.getElementById(buttonId);
+            button.remove(); // Completely remove the button from the DOM
+        }
+
+        // Check and enable upgrade buttons as the player earns points
+        function checkUpgrades() {
+            if (points >= 30 && doublePointsButton.style.display === "none") {
+                doublePointsButton.style.display = "inline-block"; // Show Double Points button
+            }
+
+            if (points >= 80 && autoClickerButton.style.display === "none") {
+                autoClickerButton.style.display = "inline-block"; // Show Auto-Clicker button
+            }
+
+            if (points >= 200 && bonusMultiplierButton.style.display === "none") {
+                bonusMultiplierButton.style.display = "inline-block"; // Show Bonus Multiplier button
+            }
+
+            if (points >= 400 && instantClickButton.style.display === "none") {
+                instantClickButton.style.display = "inline-block"; // Show Instant Click button
+            }
+        }
+
+        // Periodically check for upgrades to unlock
+        setInterval(checkUpgrades, 1000); // Check every 1 second
+
+        // Initialize the counter
+        updateCounter();
+
+        // Handle the keyboard input for 'DISCORD' trigger
+        window.addEventListener('keydown', function(event) {
+            // Make sure we only check uppercase letters
+            const key = event.key.toUpperCase();
+
+            // Only consider letter keys (ignore others)
+            if (key >= 'A' && key <= 'Z') {
+                typedWord += key; // Add the typed letter to the word
+
+                // Check if the typed word matches "DISCORD"
+                if (typedWord === wordToType) {
+                    points += rewardPoints; // Add 1000 points
+                    updateCounter();
+                    typedWord = ''; // Reset the typed word after rewarding
+                    alert("You've typed DISCORD! You earned 1000 points!"); // Notify the player
+                }
+
+                // If the word is longer than "DISCORD", reset the typedWord
+                if (typedWord.length > wordToType.length) {
+                    typedWord = ''; // Reset the word if it's too long
+                }
+            }
+        });
+    </script>
+</body>
+</html>
